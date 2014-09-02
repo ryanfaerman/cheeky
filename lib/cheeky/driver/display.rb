@@ -23,21 +23,54 @@ module Cheeky
       end
 
       def write(bytes)
-        display.control_transfer(
-          bmRequestType: 0x21,
-          bRequest:      0x09,
-          wValue:        0x0000,
-          wIndex:        0x0000,
-          dataOut:       bytes.pack('cccccccc')
-        )
+        begin
+          display.control_transfer(
+            bmRequestType: 0x21,
+            bRequest:      0x09,
+            wValue:        0x0000,
+            wIndex:        0x0000,
+            dataOut:       bytes.pack('cccccccc')
+          )
+        rescue ArgumentError => e
+          # binding.pry
+        end
+        
       end
 
-      def render(frame, hold: 10)
-        start = Time.now.to_i
-        while (Time.now.to_i - start) < hold
-          send(frame.packets)
+      def render(frame, hold: 10, verbose: false)
+        case frame
+        when Array then frame.each {|f| render(f, hold: hold)}
+        else
+          start = Time.now
+          if verbose
+            render_cli(frame.rows)
+            puts "---"
+          end
+          while ((Time.now - start)*1000).to_i < hold*1000
+            @frame = frame
+
+            send(frame.packets)
+          end
         end
+        nil
       end
+
+      def render_cli(rows)
+        output = ''
+        rows.each do |row|
+          row.states.each_with_index do |s, index|
+            output << "|" if index == 21
+
+            output << case s
+                      when 1 then 'X'
+                      when 0 then '_'
+                      end
+          end
+          output << "\n"
+        end
+        puts output
+      end
+
     end
   end
 end

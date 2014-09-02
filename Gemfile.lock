@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cheeky (0.0.1.b455586)
+    cheeky (0.0.1.17c7e79)
       equalizer
       libusb
 

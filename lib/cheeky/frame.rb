@@ -22,12 +22,32 @@ module Cheeky
         offset = 0
 
         rows.each_slice(2) do |row_pair|
+          if row_pair.length != 2
+            # binding.pry
+            row_pair.push Row.new
+          end
           packets << Driver::Packet.new(brightness: brightness, offset: offset, rows: row_pair)
           offset += 2
         end
 
         packets
       end
+    end
+
+    def lshift(n)
+      new_rows = []
+      rows.each do |row|
+        new_rows << row.lshift(n)
+      end
+      self.class.new(brightness: brightness, rows: new_rows)
+    end
+
+    def rshift(n)
+      new_rows = []
+      rows.each do |row|
+        new_rows << row.rshift(n)
+      end
+      self.class.new(brightness: brightness, rows: new_rows)
     end
   end
 end

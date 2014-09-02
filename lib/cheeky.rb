@@ -5,6 +5,7 @@ require 'yaml'
 require 'cheeky/brightness'
 require 'cheeky/row'
 require 'cheeky/frame'
+require 'cheeky/font'
 require 'cheeky/driver/display'
 require 'cheeky/driver/packet'
 
@@ -12,62 +13,27 @@ require 'cheeky/driver/packet'
 module Cheeky
   VERSION = '0.0.1'
 
-  def write(text, font: :default, hold: 10)
+  def write(text, font: :default, hold: 0.1, scroll: :left)
     display = Driver::Display.new
 
     rows = Font.new(font).map(text)
-    frame = Frame.new(rows: rows)
+    keyframe = Frame.new(rows: rows)
 
-    display.render(frame, hold: hold)
+    frames = []
+
+    21.times do |n|
+      frames << keyframe.rshift(21-n)
+    end
+
+    content_length = rows.first.states.length
+    (content_length + 1).times do |n|
+      frames << keyframe.lshift(n)
+    end
+
+    frames.reverse! if scroll == :right
+
+    display.render(frames, hold: hold)
   end
   module_function :write
 
-  class Font
-    include Equalizer.new(:name)
-    attr_reader :name, :characters, :source
-
-    def initialize(name = 'default')
-      @name = name.to_s
-      @source = File.expand_path("../../fonts/#{name}.yml", __FILE__)
-      @characters = {}
-      load
-
-    end
-
-    def load
-      definition = YAML.load_file(source)
-      @characters = definition['characters']
-    end
-
-    def lookup(char)
-      mapping = characters[char.to_s]
-      case mapping.length
-      when 1 then characters[mapping.first]
-      else
-        mapping
-      end
-    end
-    alias_method :[], :lookup
-
-    def map(string)
-      letters = string.split('')
-
-      output_rows = [
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        []
-      ]
-      letters.each do |letter|
-        lookup(letter).each_with_index do |submap, index|
-          output_rows[index] << submap
-        end
-      end
-
-      output_rows.map {|r| r.join(' ')}.map {|r| Row.new(*r.split(''))}
-    end
-  end
 end
